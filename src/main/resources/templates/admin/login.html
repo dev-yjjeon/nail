@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>유리네일 - 관리자 로그인</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        .login-box {
+            max-width: 400px;
+            margin: 100px auto;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Yuri Nail (Admin)</h1>
+        <nav>
+            <a th:href="@{/}">예약하기</a>
+            <a th:href="@{/confirm}">예약확인</a>
+        </nav>
+    </header>
+
+    <div class="container">
+        <div class="card login-box">
+            <h2 class="text-center">관리자 로그인</h2>
+            <form th:action="@{/admin/login}" method="post" style="margin-top: 20px;">
+                <div class="form-group">
+                    <label for="username">관리자 ID</label>
+                    <input type="text" id="username" name="username" class="form-control" placeholder="ID를 입력하세요" required>
+                </div>
+                <div class="form-group">
+                    <label for="password">비밀번호</label>
+                    <input type="password" id="password" name="password" class="form-control" placeholder="비밀번호를 입력하세요" required>
+                </div>
+                
+                <div th:if="${error}" style="color: var(--danger-color); font-weight: 500; margin-bottom: 15px; font-size: 14px;" class="text-center">
+                    <span th:text="${error}"></span>
+                </div>
+
+                <button type="submit" class="btn btn-primary" style="width: 100%;">로그인</button>
+            </form>
+        </div>
+    </div>
+</body>
+</html>

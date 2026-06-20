@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>유리네일 - 예약 확인 및 취소</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <header>
+        <h1>Yuri Nail</h1>
+        <nav>
+            <a th:href="@{/}">예약하기</a>
+            <a th:href="@{/confirm}">예약확인</a>
+            <a th:href="@{/admin/login}">관리자</a>
+        </nav>
+    </header>
+
+    <div class="container">
+        <!-- 예약 조회 폼 -->
+        <div class="card" id="querySection">
+            <h2>비회원 예약 조회</h2>
+            <form id="queryForm">
+                <div class="form-group">
+                    <label for="customerName">예약자 성함</label>
+                    <input type="text" id="customerName" class="form-control" placeholder="성함을 입력하세요" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="customerPhone">연락처</label>
+                    <input type="tel" id="customerPhone" class="form-control" placeholder="예약 시 입력한 연락처" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="password">예약 비밀번호 (4자리)</label>
+                    <input type="password" id="password" class="form-control" maxlength="4" placeholder="비밀번호" required>
+                </div>
+
+                <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 10px;">예약 조회하기</button>
+            </form>
+        </div>
+
+        <!-- 예약 리스트 결과 화면 -->
+        <div class="card" id="resultSection" style="display: none;">
+            <h2>예약 조회 결과</h2>
+            <div id="reservationListContainer">
+                <!-- 여기에 동적으로 리스트 생성 -->
+            </div>
+            <button class="btn btn-secondary" style="margin-top: 20px;" onclick="backToQuery()">다시 조회하기</button>
+        </div>
+    </div>
+
+    <script>
+        const querySection = document.getElementById('querySection');
+        const resultSection = document.getElementById('resultSection');
+        const reservationListContainer = document.getElementById('reservationListContainer');
+
+        document.getElementById('queryForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const customerName = document.getElementById('customerName').value;
+            const customerPhone = document.getElementById('customerPhone').value;
+            const password = document.getElementById('password').value;
+
+            fetch('/api/reservations/query', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    customerName: customerName,
+                    customerPhone: customerPhone,
+                    password: password
+                })
+            })
+            .then(response => response.json())
+            .then(reservations => {
+                querySection.style.display = 'none';
+                resultSection.style.display = 'block';
+                reservationListContainer.innerHTML = '';
+
+                if (reservations.length === 0) {
+                    reservationListContainer.innerHTML = '<div style="text-align:center; padding: 20px 0; color: #999;">조회된 예약 내역이 없습니다.</div>';
+                    return;
+                }
+
+                reservations.forEach(res => {
+                    const resCard = document.createElement('div');
+                    resCard.style.border = '1px solid #ffd1dc';
+                    resCard.style.borderRadius = '8px';
+                    resCard.style.padding = '15px';
+                    resCard.style.marginBottom = '15px';
+                    resCard.style.backgroundColor = '#fffcfd';
+
+                    let statusBadgeClass = '';
+                    let statusText = '';
+                    if (res.status === 'PENDING') {
+                        statusBadgeClass = 'badge-pending';
+                        statusText = '승인대기';
+                    } else if (res.status === 'CONFIRMED') {
+                        statusBadgeClass = 'badge-confirmed';
+                        statusText = '예약확정';
+                    } else if (res.status === 'CANCELLED') {
+                        statusBadgeClass = 'badge-cancelled';
+                        statusText = '예약취소';
+                    }
+
+                    // 시간 포맷 정리
+                    const timeRange = `${res.startTime.substring(0, 5)} ~ ${res.endTime.substring(0, 5)}`;
+
+                    resCard.innerHTML = `
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 10px;">
+                            <span class="badge ${statusBadgeClass}">${statusText}</span>
+                            <span style="color:#999; font-size:13px;">등록일: ${res.insDt.replace('T', ' ').substring(0, 16)}</span>
+                        </div>
+                        <div style="margin-bottom: 8px;">
+                            <strong>예약 일시:</strong> ${res.resDate} (${timeRange})
+                        </div>
+                        <div style="margin-bottom: 8px;">
+                            <strong>메모:</strong> ${res.memo ? res.memo : '없음'}
+                        </div>
+                    `;
+
+                    // PENDING 혹은 CONFIRMED인 경우에만 취소 버튼 활성화
+                    if (res.status === 'PENDING' || res.status === 'CONFIRMED') {
+                        const cancelBtn = document.createElement('button');
+                        cancelBtn.className = 'btn btn-danger';
+                        cancelBtn.style.padding = '8px 15px';
+                        cancelBtn.style.fontSize = '13px';
+                        cancelBtn.style.marginTop = '10px';
+                        cancelBtn.textContent = '예약 취소';
+                        cancelBtn.onclick = function() {
+                            if (confirm('예약을 취소하시겠습니까?')) {
+                                fetch(`/api/reservations/cancel/${res.reservationId}`, {
+                                    method: 'POST'
+                                })
+                                .then(async response => {
+                                    const data = await response.json();
+                                    if (response.ok) {
+                                        alert('예약이 성공적으로 취소되었습니다.');
+                                        // 다시 제출하여 갱신
+                                        document.getElementById('queryForm').dispatchEvent(new Event('submit'));
+                                    } else {
+                                        alert(data.message || '예약 취소에 실패했습니다.');
+                                    }
+                                })
+                                .catch(error => {
+                                    console.error('Error cancelling reservation:', error);
+                                    alert('오류가 발생했습니다.');
+                                });
+                            }
+                        };
+                        resCard.appendChild(cancelBtn);
+                    }
+
+                    reservationListContainer.appendChild(resCard);
+                });
+            })
+            .catch(error => {
+                console.error('Error fetching reservations:', error);
+                alert('예약 조회 중 오류가 발생했습니다.');
+            });
+        });
+
+        function backToQuery() {
+            querySection.style.display = 'block';
+            resultSection.style.display = 'none';
+        }
+    </script>
+</body>
+</html>

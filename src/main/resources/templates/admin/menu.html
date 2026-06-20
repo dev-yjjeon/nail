@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>유리네일 관리자 - 메뉴 관리</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <header>
+        <h1>Yuri Nail (Admin Menu)</h1>
+        <nav>
+            <a th:href="@{/admin/dashboard}">예약현황</a>
+            <a th:href="@{/admin/menu}">메뉴관리</a>
+            <a th:href="@{/admin/offday}">휴무일관리</a>
+            <a th:href="@{/admin/logout}">로그아웃</a>
+        </nav>
+    </header>
+
+    <div class="container">
+        <div class="flex-container">
+            <!-- 메뉴 등록/수정 폼 -->
+            <div class="flex-child" style="flex: 0 0 350px;">
+                <div class="card">
+                    <h3 id="formTitle">신규 메뉴 등록</h3>
+                    <form id="menuForm" method="post" th:action="@{/admin/menu/add}">
+                        <!-- 수정 모드용 hidden ID -->
+                        <input type="hidden" id="menuId" name="menuId">
+
+                        <div class="form-group">
+                            <label for="menuName">메뉴 이름</label>
+                            <input type="text" id="menuName" name="menuName" class="form-control" placeholder="예: 젤 네일 원톤" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="price">가격 (원)</label>
+                            <input type="number" id="price" name="price" class="form-control" placeholder="예: 30000" min="0" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="durationMinutes">소요 시간 (분)</label>
+                            <select id="durationMinutes" name="durationMinutes" class="form-control" required>
+                                <option value="30">30분</option>
+                                <option value="60">60분</option>
+                                <option value="90">90분</option>
+                                <option value="120">120분</option>
+                                <option value="150">150분</option>
+                                <option value="180">180분</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="description">메뉴 설명</label>
+                            <textarea id="description" name="description" class="form-control" rows="3" placeholder="메뉴에 대한 설명을 적어주세요."></textarea>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="useYn">노출 여부 (사용여부)</label>
+                            <select id="useYn" name="useYn" class="form-control">
+                                <option value="Y">노출 (Y)</option>
+                                <option value="N">숨김 (N)</option>
+                            </select>
+                        </div>
+
+                        <div style="display:flex; gap:10px;">
+                            <button type="submit" id="submitBtn" class="btn btn-primary" style="flex:1;">등록하기</button>
+                            <button type="button" id="cancelBtn" class="btn btn-secondary" style="display:none; flex:1;" onclick="setRegisterMode()">취소</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- 메뉴 목록 리스트 -->
+            <div class="flex-child">
+                <div class="card">
+                    <h3>메뉴 목록</h3>
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>메뉴명</th>
+                                <th>가격</th>
+                                <th>소요시간</th>
+                                <th>노출</th>
+                                <th>관리</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="menu : ${menus}">
+                                <td th:text="${menu.menuName}">기본 젤네일</td>
+                                <td th:text="${#numbers.formatInteger(menu.price, 0, 'COMMA') + '원'}">30,000원</td>
+                                <td th:text="${menu.durationMinutes + '분'}">60분</td>
+                                <td>
+                                    <span th:if="${menu.useYn == 'Y'}" class="badge badge-confirmed">노출중</span>
+                                    <span th:if="${menu.useYn == 'N'}" class="badge badge-cancelled">숨김됨</span>
+                                </td>
+                                <td>
+                                    <div style="display:flex; gap:5px;">
+                                        <button class="btn btn-secondary" style="padding:6px 12px; font-size:13px;" th:onclick="setEditMode([[${menu.menuId}]], [[${menu.menuName}]], [[${menu.price}]], [[${menu.durationMinutes}]], [[${menu.description}]], [[${menu.useYn}]])">수정</button>
+                                        <form th:action="@{'/admin/menu/delete/' + ${menu.menuId}}" method="post" onsubmit="return confirm('이 메뉴를 삭제하시겠습니까? 관련 예약 신청 내역에 영향을 줄 수 있습니다.');">
+                                            <button type="submit" class="btn btn-danger" style="padding:6px 12px; font-size:13px;">삭제</button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr th:if="${#lists.isEmpty(menus)}">
+                                <td colspan="5" class="text-center" style="padding: 20px; color:#999;">등록된 네일 메뉴가 없습니다.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const menuForm = document.getElementById('menuForm');
+        const formTitle = document.getElementById('formTitle');
+        const submitBtn = document.getElementById('submitBtn');
+        const cancelBtn = document.getElementById('cancelBtn');
+
+        const menuIdInput = document.getElementById('menuId');
+        const menuNameInput = document.getElementById('menuName');
+        const priceInput = document.getElementById('price');
+        const durationSelect = document.getElementById('durationMinutes');
+        const descriptionInput = document.getElementById('description');
+        const useYnSelect = document.getElementById('useYn');
+
+        // 수정 모드 세팅
+        function setEditMode(id, name, price, duration, description, useYn) {
+            formTitle.textContent = '메뉴 수정';
+            menuForm.action = '/admin/menu/update';
+            
+            menuIdInput.value = id;
+            menuNameInput.value = name;
+            priceInput.value = price;
+            durationSelect.value = duration;
+            descriptionInput.value = description || '';
+            useYnSelect.value = useYn;
+
+            submitBtn.textContent = '수정 완료';
+            cancelBtn.style.display = 'inline-block';
+        }
+
+        // 등록 모드 세팅 (취소 시)
+        function setRegisterMode() {
+            formTitle.textContent = '신규 메뉴 등록';
+            menuForm.action = '/admin/menu/add';
+            
+            menuIdInput.value = '';
+            menuForm.reset();
+
+            submitBtn.textContent = '등록하기';
+            cancelBtn.style.display = 'none';
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>유리네일 - 예약하기</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <header>
+        <h1>Yuri Nail</h1>
+        <nav>
+            <a th:href="@{/}">예약하기</a>
+            <a th:href="@{/confirm}">예약확인</a>
+            <a th:href="@{/admin/login}">관리자</a>
+        </nav>
+    </header>
+
+    <div class="container">
+        <div class="card">
+            <h2>실시간 예약 신청</h2>
+            <div class="flex-container">
+                <!-- 예약 설정 영역 -->
+                <div class="flex-child">
+                    <div class="form-group">
+                        <label for="menuSelect">네일 메뉴 선택</label>
+                        <select id="menuSelect" class="form-control">
+                            <option value="">-- 메뉴를 선택해주세요 --</option>
+                            <option th:each="menu : ${menus}" th:value="${menu.menuId}" th:data-duration="${menu.durationMinutes}" th:text="${menu.menuName + ' (' + menu.price + '원 / ' + menu.durationMinutes + '분)'}"></option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="dateSelect">예약 날짜 선택</label>
+                        <input type="date" id="dateSelect" class="form-control">
+                    </div>
+
+                    <!-- 시간 슬롯 표시 영역 -->
+                    <div class="form-group">
+                        <label>예약 시간 선택</label>
+                        <div id="slotsContainer" class="slots-container">
+                            <div class="slot-item disabled">메뉴와 날짜를 선택해주세요.</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 고객 정보 입력 영역 -->
+                <div class="flex-child">
+                    <form id="reservationForm">
+                        <input type="hidden" id="selectedStartTime">
+                        
+                        <div class="form-group">
+                            <label for="customerName">예약자 성함</label>
+                            <input type="text" id="customerName" class="form-control" placeholder="성함을 입력하세요" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="customerPhone">연락처</label>
+                            <input type="tel" id="customerPhone" class="form-control" placeholder="010-0000-0000" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="password">예약 비밀번호 (4자리)</label>
+                            <input type="password" id="password" class="form-control" maxlength="4" placeholder="비회원 예약 조회/취소용 비밀번호" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="memo">요청 사항 (메모)</label>
+                            <textarea id="memo" class="form-control" rows="4" placeholder="원하시는 아트나 참고사항이 있다면 입력해주세요."></textarea>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 10px;">예약 신청하기</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 오늘 날짜 이전은 선택 불가하도록 설정
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('dateSelect').min = today;
+
+        const menuSelect = document.getElementById('menuSelect');
+        const dateSelect = document.getElementById('dateSelect');
+        const slotsContainer = document.getElementById('slotsContainer');
+        const selectedStartTimeInput = document.getElementById('selectedStartTime');
+        let selectedSlotElement = null;
+
+        // 슬롯 로드 함수
+        function loadSlots() {
+            const menuId = menuSelect.value;
+            const date = dateSelect.value;
+
+            if (!menuId || !date) {
+                slotsContainer.innerHTML = '<div class="slot-item disabled" style="grid-column: 1/-1;">메뉴와 날짜를 선택해주세요.</div>';
+                selectedStartTimeInput.value = '';
+                return;
+            }
+
+            slotsContainer.innerHTML = '<div class="slot-item disabled" style="grid-column: 1/-1;">가능한 예약 시간을 조회 중입니다...</div>';
+
+            fetch(`/api/reservations/slots?date=${date}&menuId=${menuId}`)
+                .then(response => response.json())
+                .then(slots => {
+                    slotsContainer.innerHTML = '';
+                    if (slots.length === 0) {
+                        slotsContainer.innerHTML = '<div class="slot-item disabled" style="grid-column: 1/-1;">선택하신 날짜에 예약 가능한 시간대가 없습니다.</div>';
+                        return;
+                    }
+
+                    slots.forEach(slot => {
+                        const slotDiv = document.createElement('div');
+                        slotDiv.className = 'slot-item';
+                        slotDiv.textContent = slot.startTime.substring(0, 5); // HH:mm 포맷팅
+
+                        if (slot.available) {
+                            slotDiv.classList.add('available');
+                            slotDiv.addEventListener('click', () => {
+                                if (selectedSlotElement) {
+                                    selectedSlotElement.classList.remove('selected');
+                                }
+                                slotDiv.classList.add('selected');
+                                selectedSlotElement = slotDiv;
+                                selectedStartTimeInput.value = slot.startTime;
+                            });
+                        } else {
+                            slotDiv.classList.add('disabled');
+                        }
+
+                        slotsContainer.appendChild(slotDiv);
+                    });
+                })
+                .catch(error => {
+                    console.error('Error fetching slots:', error);
+                    slotsContainer.innerHTML = '<div class="slot-item disabled" style="grid-column: 1/-1;">시간표를 조회하는 동안 오류가 발생했습니다.</div>';
+                });
+        }
+
+        menuSelect.addEventListener('change', loadSlots);
+        dateSelect.addEventListener('change', loadSlots);
+
+        // 예약 폼 제출 처리
+        document.getElementById('reservationForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const menuId = menuSelect.value;
+            const resDate = dateSelect.value;
+            const startTime = selectedStartTimeInput.value;
+            const customerName = document.getElementById('customerName').value;
+            const customerPhone = document.getElementById('customerPhone').value;
+            const password = document.getElementById('password').value;
+            const memo = document.getElementById('memo').value;
+
+            if (!menuId || !resDate) {
+                alert('메뉴와 날짜를 선택해주세요.');
+                return;
+            }
+
+            if (!startTime) {
+                alert('원하시는 예약 시간을 선택해주세요.');
+                return;
+            }
+
+            const reservationData = {
+                menuId: parseInt(menuId),
+                resDate: resDate,
+                startTime: startTime,
+                customerName: customerName,
+                customerPhone: customerPhone,
+                password: password,
+                memo: memo
+            };
+
+            fetch('/api/reservations', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(reservationData)
+            })
+            .then(async response => {
+                const text = await response.text();
+                if (response.ok) {
+                    alert('예약이 성공적으로 접수되었습니다. 관리자 승인 후 확정됩니다.');
+                    window.location.reload();
+                } else {
+                    alert(text || '예약 신청에 실패했습니다.');
+                }
+            })
+            .catch(error => {
+                console.error('Error submitting reservation:', error);
+                alert('오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
+            });
+        });
+    </script>
+</body>
+</html>

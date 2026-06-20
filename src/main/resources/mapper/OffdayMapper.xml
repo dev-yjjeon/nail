@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yurinail.mapper.OffdayMapper">
+
+  <select id="selectAllOffdays" resultType="com.yurinail.domain.ShopOffday">
+    SELECT offday_id,
+           off_date,
+           start_time,
+           end_time,
+           off_reason
+      FROM shop_offday
+  </select>
+
+  <select id="selectOffdaysByDate" parameterType="java.time.LocalDate" resultType="com.yurinail.domain.ShopOffday">
+    SELECT offday_id,
+           off_date,
+           start_time,
+           end_time,
+           off_reason
+      FROM shop_offday
+     WHERE off_date = #{offDate}
+  </select>
+
+  <select id="selectOffdayById" parameterType="long" resultType="com.yurinail.domain.ShopOffday">
+    SELECT offday_id,
+           off_date,
+           start_time,
+           end_time,
+           off_reason
+      FROM shop_offday
+     WHERE offday_id = #{offdayId}
+  </select>
+
+  <insert id="insertOffday" parameterType="com.yurinail.domain.ShopOffday">
+    INSERT INTO shop_offday (off_date, start_time, end_time, off_reason)
+    VALUES (
+        #{offDate},
+        #{startTime,jdbcType=TIME},
+        #{endTime,jdbcType=TIME},
+        #{offReason,jdbcType=VARCHAR}
+    )
+  </insert>
+
+  <update id="updateOffday" parameterType="com.yurinail.domain.ShopOffday">
+    UPDATE shop_offday
+       SET off_date = #{offDate},
+           start_time = #{startTime,jdbcType=TIME},
+           end_time = #{endTime,jdbcType=TIME},
+           off_reason = #{offReason,jdbcType=VARCHAR}
+     WHERE offday_id = #{offdayId}
+  </update>
+
+  <delete id="deleteOffday" parameterType="long">
+    DELETE
+      FROM shop_offday
+     WHERE offday_id = #{offdayId}
+  </delete>
+
+</mapper>

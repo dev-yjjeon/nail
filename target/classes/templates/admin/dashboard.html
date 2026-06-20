@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>유리네일 관리자 - 대시보드</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <header>
+        <h1>Yuri Nail (Admin Dashboard)</h1>
+        <nav>
+            <a th:href="@{/admin/dashboard}">예약현황</a>
+            <a th:href="@{/admin/menu}">메뉴관리</a>
+            <a th:href="@{/admin/offday}">휴무일관리</a>
+            <a th:href="@{/admin/logout}">로그아웃</a>
+        </nav>
+    </header>
+
+    <div class="container">
+        <div class="card">
+            <h2>예약 조회 및 상태 관리</h2>
+            
+            <!-- 날짜 필터 -->
+            <form id="filterForm" method="get" th:action="@{/admin/dashboard}" style="display:flex; align-items:flex-end; gap: 15px; margin-bottom: 30px;">
+                <div class="form-group" style="margin-bottom:0; flex:1;">
+                    <label for="dateSelect" style="margin-bottom: 5px;">예약 날짜 선택</label>
+                    <input type="date" id="dateSelect" name="date" class="form-control" th:value="${currentDate}">
+                </div>
+                <button type="submit" class="btn btn-primary">조회하기</button>
+            </form>
+
+            <!-- 예약 목록 테이블 -->
+            <h3>예약 목록 (<span th:text="${currentDate}"></span>)</h3>
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>시간</th>
+                        <th>고객명</th>
+                        <th>연락처</th>
+                        <th>신청메뉴</th>
+                        <th>상태</th>
+                        <th>메모</th>
+                        <th>작업</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="res : ${reservations}">
+                        <td th:text="${res.startTime.toString().substring(0, 5) + ' ~ ' + res.endTime.toString().substring(0, 5)}">10:00 ~ 11:00</td>
+                        <td th:text="${res.customerName}">홍길동</td>
+                        <td th:text="${res.customerPhone}">010-1234-5678</td>
+                        <td>
+                            <!-- 메뉴 ID로 메뉴명 찾기 -->
+                            <span th:each="m : ${menus}" th:if="${m.menuId == res.menuId}" th:text="${m.menuName}"></span>
+                        </td>
+                        <td>
+                            <span th:if="${res.status == 'PENDING'}" class="badge badge-pending">승인대기</span>
+                            <span th:if="${res.status == 'CONFIRMED'}" class="badge badge-confirmed">예약확정</span>
+                            <span th:if="${res.status == 'CANCELLED'}" class="badge badge-cancelled">예약취소</span>
+                        </td>
+                        <td th:text="${res.memo}">메모</td>
+                        <td>
+                            <div style="display:flex; gap: 5px;">
+                                <!-- PENDING 상태일 때만 승인 버튼 노출 -->
+                                <form th:if="${res.status == 'PENDING'}" th:action="@{'/admin/reservations/approve/' + ${res.reservationId}}" method="post" onsubmit="return confirm('예약을 승인하시겠습니까?');">
+                                    <input type="hidden" name="date" th:value="${currentDate}">
+                                    <button type="submit" class="btn btn-primary" style="padding: 6px 12px; font-size:13px;">승인</button>
+                                </form>
+                                <!-- CANCELLED 가 아닐 때만 취소 버튼 노출 -->
+                                <form th:if="${res.status != 'CANCELLED'}" th:action="@{'/admin/reservations/cancel/' + ${res.reservationId}}" method="post" onsubmit="return confirm('예약을 취소하시겠습니까?');">
+                                    <input type="hidden" name="date" th:value="${currentDate}">
+                                    <button type="submit" class="btn btn-danger" style="padding: 6px 12px; font-size:13px;">취소</button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr th:if="${#lists.isEmpty(reservations)}">
+                        <td colspan="7" class="text-center" style="padding: 30px; color:#999;">해당 날짜에 등록된 예약 신청 내역이 없습니다.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</body>
+</html>

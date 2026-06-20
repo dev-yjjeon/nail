@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>유리네일 관리자 - 휴무일 관리</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <header>
+        <h1>Yuri Nail (Admin Offday)</h1>
+        <nav>
+            <a th:href="@{/admin/dashboard}">예약현황</a>
+            <a th:href="@{/admin/menu}">메뉴관리</a>
+            <a th:href="@{/admin/offday}">휴무일관리</a>
+            <a th:href="@{/admin/logout}">로그아웃</a>
+        </nav>
+    </header>
+
+    <div class="container">
+        <div class="flex-container">
+            <!-- 휴무일 등록/수정 폼 -->
+            <div class="flex-child" style="flex: 0 0 350px;">
+                <div class="card">
+                    <h3 id="formTitle">신규 휴무일 등록</h3>
+                    <form id="offdayForm" method="post" th:action="@{/admin/offday/add}">
+                        <!-- 수정 모드용 hidden ID -->
+                        <input type="hidden" id="offdayId" name="offdayId">
+
+                        <div class="form-group">
+                            <label for="offDate">휴무 일자</label>
+                            <input type="date" id="offDate" name="offDate" class="form-control" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="startTime">시작 시간 (선택)</label>
+                            <input type="time" id="startTime" name="startTime" class="form-control">
+                            <small style="color: #999;">입력하지 않으면 종일 휴무로 처리됩니다.</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="endTime">종료 시간 (선택)</label>
+                            <input type="time" id="endTime" name="endTime" class="form-control">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="offReason">휴무 사유</label>
+                            <input type="text" id="offReason" name="offReason" class="form-control" placeholder="예: 정기 휴무, 내부 공사 등" required>
+                        </div>
+
+                        <div style="display:flex; gap:10px;">
+                            <button type="submit" id="submitBtn" class="btn btn-primary" style="flex:1;">등록하기</button>
+                            <button type="button" id="cancelBtn" class="btn btn-secondary" style="display:none; flex:1;" onclick="setRegisterMode()">취소</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- 휴무일 목록 리스트 -->
+            <div class="flex-child">
+                <div class="card">
+                    <h3>휴무일 설정 목록</h3>
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>날짜</th>
+                                <th>시간</th>
+                                <th>구분</th>
+                                <th>사유</th>
+                                <th>관리</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="offday : ${offdays}">
+                                <td th:text="${offday.offDate}">2026-06-25</td>
+                                <td>
+                                    <span th:if="${offday.startTime != null && offday.endTime != null}" th:text="${offday.startTime.toString().substring(0, 5) + ' ~ ' + offday.endTime.toString().substring(0, 5)}"></span>
+                                    <span th:if="${offday.startTime == null || offday.endTime == null}">-</span>
+                                </td>
+                                <td>
+                                    <span th:if="${offday.startTime == null || offday.endTime == null}" class="badge badge-cancelled">종일 휴무</span>
+                                    <span th:if="${offday.startTime != null && offday.endTime != null}" class="badge badge-pending">부분 휴무</span>
+                                </td>
+                                <td th:text="${offday.offReason}">정기 휴무</td>
+                                <td>
+                                    <div style="display:flex; gap:5px;">
+                                        <button class="btn btn-secondary" style="padding:6px 12px; font-size:13px;" th:onclick="setEditMode([[${offday.offdayId}]], [[${offday.offDate}]], [[${offday.startTime != null ? offday.startTime.toString().substring(0, 5) : ''}]], [[${offday.endTime != null ? offday.endTime.toString().substring(0, 5) : ''}]], [[${offday.offReason}]])">수정</button>
+                                        <form th:action="@{'/admin/offday/delete/' + ${offday.offdayId}}" method="post" onsubmit="return confirm('이 휴무 설정을 삭제하시겠습니까?');">
+                                            <button type="submit" class="btn btn-danger" style="padding:6px 12px; font-size:13px;">삭제</button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr th:if="${#lists.isEmpty(offdays)}">
+                                <td colspan="5" class="text-center" style="padding: 20px; color:#999;">설정된 휴무일이 없습니다.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const offdayForm = document.getElementById('offdayForm');
+        const formTitle = document.getElementById('formTitle');
+        const submitBtn = document.getElementById('submitBtn');
+        const cancelBtn = document.getElementById('cancelBtn');
+
+        const offdayIdInput = document.getElementById('offdayId');
+        const offDateInput = document.getElementById('offDate');
+        const startTimeInput = document.getElementById('startTime');
+        const endTimeInput = document.getElementById('endTime');
+        const offReasonInput = document.getElementById('offReason');
+
+        // 오늘 날짜 이전은 선택 불가하도록 설정
+        const today = new Date().toISOString().split('T')[0];
+        offDateInput.min = today;
+
+        // 수정 모드 세팅
+        function setEditMode(id, date, startTime, endTime, reason) {
+            formTitle.textContent = '휴무 설정 수정';
+            offdayForm.action = '/admin/offday/update';
+            
+            offdayIdInput.value = id;
+            offDateInput.value = date;
+            startTimeInput.value = startTime || '';
+            endTimeInput.value = endTime || '';
+            offReasonInput.value = reason;
+
+            submitBtn.textContent = '수정 완료';
+            cancelBtn.style.display = 'inline-block';
+        }
+
+        // 등록 모드 세팅 (취소 시)
+        function setRegisterMode() {
+            formTitle.textContent = '신규 휴무일 등록';
+            offdayForm.action = '/admin/offday/add';
+            
+            offdayIdInput.value = '';
+            offdayForm.reset();
+
+            submitBtn.textContent = '등록하기';
+            cancelBtn.style.display = 'none';
+        }
+    </script>
+</body>
+</html>

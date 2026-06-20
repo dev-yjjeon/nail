@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yurinail.mapper.ReservationMapper">
+
+  <select id="selectReservationsByDate" parameterType="java.time.LocalDate" resultType="com.yurinail.domain.Reservation">
+    SELECT reservation_id,
+           customer_name,
+           customer_phone,
+           password,
+           menu_id,
+           res_date,
+           start_time,
+           end_time,
+           status,
+           memo,
+           ins_dt,
+           upd_dt
+      FROM reservation
+     WHERE res_date = #{resDate}
+  </select>
+
+  <select id="selectReservationById" parameterType="long" resultType="com.yurinail.domain.Reservation">
+    SELECT reservation_id,
+           customer_name,
+           customer_phone,
+           password,
+           menu_id,
+           res_date,
+           start_time,
+           end_time,
+           status,
+           memo,
+           ins_dt,
+           upd_dt
+      FROM reservation
+     WHERE reservation_id = #{reservationId}
+  </select>
+
+  <insert id="insertReservation" parameterType="com.yurinail.domain.Reservation">
+    INSERT INTO reservation (customer_name, customer_phone, password, menu_id, res_date, start_time, end_time, status, memo, ins_dt, upd_dt)
+    VALUES (
+        #{customerName},
+        #{customerPhone},
+        #{password},
+        #{menuId},
+        #{resDate},
+        #{startTime},
+        #{endTime},
+        #{status},
+        #{memo},
+        #{insDt},
+        #{updDt}
+    )
+  </insert>
+
+  <update id="updateReservation" parameterType="com.yurinail.domain.Reservation">
+    UPDATE reservation
+       SET customer_name = #{customerName},
+           customer_phone = #{customerPhone},
+           password = #{password},
+           menu_id = #{menuId},
+           res_date = #{resDate},
+           start_time = #{startTime},
+           end_time = #{endTime},
+           status = #{status},
+           memo = #{memo},
+           upd_dt = #{updDt}
+     WHERE reservation_id = #{reservationId}
+  </update>
+
+  <delete id="deleteReservation" parameterType="long">
+    DELETE
+      FROM reservation
+     WHERE reservation_id = #{reservationId}
+  </delete>
+
+  <select id="selectReservationsByCustomer" resultType="com.yurinail.domain.Reservation">
+    SELECT reservation_id,
+           customer_name,
+           customer_phone,
+           password,
+           menu_id,
+           res_date,
+           start_time,
+           end_time,
+           status,
+           memo,
+           ins_dt,
+           upd_dt
+      FROM reservation
+     WHERE customer_name = #{customerName}
+       AND customer_phone = #{customerPhone}
+       AND password = #{password}
+  </select>
+
+</mapper>

@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yurinail.mapper.MenuMapper">
+
+  <select id="selectAllMenus" resultType="com.yurinail.domain.NailMenu">
+    SELECT menu_id,
+           menu_name,
+           price,
+           duration_minutes,
+           description,
+           use_yn
+      FROM nail_menu
+  </select>
+
+  <select id="selectActiveMenus" resultType="com.yurinail.domain.NailMenu">
+    SELECT menu_id,
+           menu_name,
+           price,
+           duration_minutes,
+           description,
+           use_yn
+      FROM nail_menu
+     WHERE use_yn = 'Y'
+  </select>
+
+  <select id="selectMenuById" parameterType="long" resultType="com.yurinail.domain.NailMenu">
+    SELECT menu_id,
+           menu_name,
+           price,
+           duration_minutes,
+           description,
+           use_yn
+      FROM nail_menu
+     WHERE menu_id = #{menuId}
+  </select>
+
+  <insert id="insertMenu" parameterType="com.yurinail.domain.NailMenu">
+    INSERT INTO nail_menu (menu_name, price, duration_minutes, description, use_yn)
+    VALUES (
+        #{menuName},
+        #{price},
+        #{durationMinutes},
+        #{description},
+        #{useYn}
+    )
+  </insert>
+
+  <update id="updateMenu" parameterType="com.yurinail.domain.NailMenu">
+    UPDATE nail_menu
+       SET menu_name = #{menuName},
+           price = #{price},
+           duration_minutes = #{durationMinutes},
+           description = #{description},
+           use_yn = #{useYn}
+     WHERE menu_id = #{menuId}
+  </update>
+
+  <delete id="deleteMenu" parameterType="long">
+    DELETE
+      FROM nail_menu
+     WHERE menu_id = #{menuId}
+  </delete>
+
+</mapper>
