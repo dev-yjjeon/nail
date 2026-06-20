@@ -1,0 +1,13 @@
+com\yurinail\domain\Reservation.class
+com\yurinail\mapper\MenuMapper.class
+com\yurinail\service\ReservationService.class
+com\yurinail\domain\NailMenu.class
+com\yurinail\mapper\OffdayMapper.class
+com\yurinail\dto\SlotDto.class
+com\yurinail\service\MenuService.class
+com\yurinail\mapper\ReservationMapper.class
+com\yurinail\domain\ShopOffday.class
+com\yurinail\YuriNailApplication.class
+com\yurinail\controller\CustomerController.class
+com\yurinail\controller\AdminController.class
+com\yurinail\service\OffdayService.class
